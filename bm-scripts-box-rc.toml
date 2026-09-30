@@ -1,0 +1,90 @@
+[bmscriptsbox]
+
+[bmscriptsbox.info]
+id = "523b6d94-7955-48fa-9fb9-b0efb17370c5"
+name = "不忙抠图"
+desc = "AI抠图去背景 | 基于BiRefNet通用分割模型,专精人像毛发与复杂边缘,本地离线CPU推理无需联网,批量处理图片,边缘自动去背景色污染,支持透明PNG/白底图/自定义底色/蒙版输出,右键菜单一键抠图,支持定时任务与节点联动,模型由不忙脚本盒子统一下载"
+version = "1.1.0"
+icon = "./imgs/cutout.png"
+
+[bmscriptsbox.runtime]
+language = "python"
+language_version = ">=3.12"
+entry = "main.py"
+terminal = "always"
+
+[bmscriptsbox.triggers.context_menu]
+enabled = true
+targets = ["files"]
+filters = [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"]
+
+[[bmscriptsbox.inputs]]
+name = "target_paths"
+label = "源图片"
+type = "list"
+pick = "files"
+exts = [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"]
+description = "要抠图的图片；右键菜单选中文件时会自动预填，也可在启动窗口里重新选"
+
+# ====== 运行参数 ======
+# output_mode 的 choices 必须与 src/box.py 的 OUTPUT_MODES 完全一致，
+# 用 tools/check_rc.py 做集合比对，避免两处手抄漂移。
+[[bmscriptsbox.params]]
+name = "output_mode"
+label = "输出"
+type = "str"
+default = "透明PNG"
+choices = ["透明PNG", "白底图", "自定义底色", "仅蒙版"]
+description = "透明PNG=RGBA 透明底；白底图=合成到纯白；自定义底色=按 bg_color 合成；仅蒙版=只输出 alpha 灰度图"
+
+[[bmscriptsbox.params]]
+name = "bg_color"
+label = "底色"
+type = "str"
+default = "#FFFFFF"
+when = { field = "output_mode", eq = "自定义底色" }
+description = "十六进制颜色，如 #F5F5F5 或 #fff"
+
+[[bmscriptsbox.params]]
+name = "output_dir"
+label = "输出目录"
+type = "str"
+default = ""
+description = "留空=输出到原图所在目录；定时任务场景建议填绝对路径"
+
+# ====== AI 模型（盒子安装时统一下载，脚本运行时问 /api/model/path 要路径）======
+# preprocessor_config.json 必须一起下：脚本运行时读它拿归一化参数
+# （do_rescale=true、rescale_factor=1/255、mean=[0.485,0.456,0.406]、
+#   std=[0.229,0.224,0.225] —— ImageNet 归一化），而不是把数字硬编码在代码里。
+# 注意这与上一版的 IS-Net 完全不同（那边是 do_rescale=false、mean=128、std=256）。
+#
+# 但它的 size 字段**不作数**：那是 HF 处理器的提示，可能过期或写错。
+# 输入尺寸以 ONNX 图的实际输入为准，见 src/infer.py 里的形状覆写逻辑。
+#
+# 不要下 onnx/model_fp16.onnx：x86 CPU 没有 fp16 加速，只会白占体积、拖慢加载。
+[[bmscriptsbox.models]]
+source = "modelscope"
+repo_id = "onnx-community/BiRefNet_lite-ONNX"
+files = ["onnx/model.onnx", "preprocessor_config.json"]
+
+# ====== 盒子渲染启动窗口（params_form 与 terminal="always" 配套）======
+[bmscriptsbox.params_form]
+enabled = true
+
+# ====== 定时任务：无人值守，仅凭 inputs + params 运行 ======
+[bmscriptsbox.schedule]
+enabled = true
+
+# ====== 节点：可被其他脚本经 /api/link 调用 ======
+[bmscriptsbox.node]
+enabled = true
+
+[[bmscriptsbox.outputs]]
+name = "results"
+type = "list"
+description = "成功输出的图片文件路径列表"
+
+[[bmscriptsbox.outputs]]
+name = "failed"
+type = "list"
+description = "处理失败的源文件路径列表"

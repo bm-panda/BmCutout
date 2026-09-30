@@ -1,0 +1,16 @@
+# 盒子安装时会创建 .venv
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# 编辑器
+.idea/
+.vscode/
+
+# 开发期模型缓存（盒子下到 BmPackages/BmModels，不该进脚本目录）
+models/
+
+# 打包产物
+dist/

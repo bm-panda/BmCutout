@@ -1,0 +1,10 @@
+[project]
+name = "bm-cutout"
+version = "1.1.0"
+description = "不忙抠图 — 基于 BiRefNet 的本地离线 AI 抠图（不忙脚本盒子脚本）"
+requires-python = ">=3.12"
+dependencies = [
+    "onnxruntime>=1.20.0",
+    "numpy>=1.24",
+    "pillow>=10.0",
+]
